@@ -36,15 +36,24 @@ def main():
     exp_d.extend(args.delete)
     exp_k.extend(args.keep)
 
-    hashs = {}
-    # Find all identical files using the MD5 hash
+    sizes = {}
+    # Find all files with identical size
     for (root, dir, files) in os.walk(d):
         for f in files:
             path = root + os.sep + f
-            m = md5(path)
-            hashs.setdefault(m, []).append(path)
+            s = os.stat(path).st_size
+            sizes.setdefault(s, []).append(path)
 
-    for h, files in hashs.items():
+    # Find all files with identical hash
+    same_files = []
+    for files in sizes.values():
+        thashs = {}
+        for f in files:
+            m = md5(f)
+            thashs.setdefault(m, []).append(f)
+        same_files.extend([f for f in thashs.values() if len(f) > 1])
+
+    for files in same_files:
         if len(files) > 1:
             stop = False
             delete = set()
