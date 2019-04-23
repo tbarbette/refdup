@@ -1,5 +1,5 @@
 # refdup
-Find and delete duplicate files in a folder using regex
+Find and delete duplicate files in a folder using regex to select which ones should be kept or deleted
 
 
 ```
