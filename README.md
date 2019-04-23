@@ -1,6 +1,8 @@
 # refdup
 Find and delete duplicate files in a folder using regex
 
+
+```
 usage: refdup.py [-h] [--dry-run] [--delete [DELETE [DELETE ...]]]
                  [--keep [KEEP [KEEP ...]]]
                  FOLDER
@@ -17,3 +19,4 @@ optional arguments:
                         List of regex to choose a file to delete
   --keep [KEEP [KEEP ...]]
                         List of regex to choose a file to keep
+```
