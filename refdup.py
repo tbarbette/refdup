@@ -17,9 +17,12 @@ def md5(fname):
 def main():
     parser = argparse.ArgumentParser(
         description='Find duplicate files and delete the duplicate using regex for selection.')
-    parser.add_argument('folder', metavar='FOLDER', type=str, nargs=1,
+    parser.add_argument('folder', metavar='FOLDER', type=str, nargs='+',
                         help='the folder to check for duplicates')
     parser.add_argument('--dry-run', dest='dry', action='store_true',
+                        default=False,
+                        help='Do a dry run')
+    parser.add_argument('--keep-oldest', dest='oldest', action='store_true',
                         default=False,
                         help='Do a dry run')
     parser.add_argument('--delete', dest='delete', type=str, nargs='*',
@@ -29,7 +32,6 @@ def main():
                         default=[],
                         help='List of regex to choose a file to keep')
     args = parser.parse_args()
-    d = args.folder[0]
     dry = args.dry
 
     exp_d = [re.compile("copie|copy", re.IGNORECASE), re.compile("~$")]
@@ -40,7 +42,8 @@ def main():
 
     sizes = {}
     # Find all files with identical size
-    for (root, dir, files) in os.walk(d):
+    for d in args.folder:
+      for (root, dir, files) in os.walk(d):
         for f in files:
             path = root + os.sep + f
             s = os.stat(path).st_size
@@ -56,12 +59,13 @@ def main():
         same_files.extend([f for f in thashs.values() if len(f) > 1])
 
     for files in same_files:
+        files.sort(key=lambda f: os.path.getctime(f))
         if len(files) > 1:
             stop = False
             delete = set()
             keep = set()
             for (i, f) in enumerate(files):
-                print("[%d] %s" % (i, f))
+                print("[%d] %s : %d" % (i, f, os.path.getctime(f)))
                 for red in exp_d:
                     if re.search(red, f):
                         delete.add(f)
@@ -73,8 +77,14 @@ def main():
                 if stop:
                     break
             if len(keep) == 0 and len(delete) == 0:
-                print("Not matching any expression... I don't know what to do !")
-                continue
+                if args.oldest:
+                    for i,f in enumerate(files[1:]):
+                        delete.add(f)
+                    print("Keeping only the oldest file %d" % (1))
+                else:
+                    print("Not matching any expression... I don't know what to do !")
+                    continue
+
             files = set(files)
             if len(files.difference(delete)) == 0:
                 print("Not deleting because delete regex matched all files !")
