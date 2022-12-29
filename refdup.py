@@ -16,7 +16,7 @@ def md5(fname):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Find duplicate files and delete the duplicate using regex for selection.')
+        description='Find duplicate files (using md5 hash) and delete the duplicate using regex for selection.')
     parser.add_argument('folder', metavar='FOLDER', type=str, nargs='+',
                         help='the folder to check for duplicates')
     parser.add_argument('--dry-run', dest='dry', action='store_true',
@@ -65,7 +65,7 @@ def main():
             delete = set()
             keep = set()
             for (i, f) in enumerate(files):
-                print("[%d] %s : %d" % (i, f, os.path.getctime(f)))
+                print("[%d] %s : date %d" % (i, f, os.path.getctime(f)))
                 for red in exp_d:
                     if re.search(red, f):
                         delete.add(f)

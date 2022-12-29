@@ -7,7 +7,7 @@ usage: refdup.py [-h] [--dry-run] [--delete [DELETE [DELETE ...]]]
                  [--keep [KEEP [KEEP ...]]]
                  FOLDER
 
-Find duplicate files and delete the duplicate using regex for selection.
+Find duplicate files (using md5 hash) and delete the duplicate using regex for selection.
 
 positional arguments:
   FOLDER                the folder to check for duplicates
