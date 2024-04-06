@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import os
 import re
-
+from tqdm import tqdm
 
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -19,16 +19,27 @@ def main():
         description='Find duplicate files (using md5 hash) and delete the duplicate using regex for selection.')
     parser.add_argument('folder', metavar='FOLDER', type=str, nargs='+',
                         help='the folder to check for duplicates')
-    parser.add_argument('--dry-run', dest='dry', action='store_true',
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--dry-run', dest='dry', action='store_true',
                         default=False,
                         help='Do a dry run')
-    parser.add_argument('--keep-oldest', dest='oldest', action='store_true',
+
+    rules = parser.add_argument_group("Selection options")
+    rules.add_argument('--min-size', metavar='N', dest='min_size', type=int, default=-1,
+                        help='Ignore files smaller than N')
+
+    g = rules.add_mutually_exclusive_group()
+    g.add_argument('--keep-oldest', dest='oldest', action='store_true',
                         default=False,
-                        help='Do a dry run')
-    parser.add_argument('--delete', dest='delete', type=str, nargs='*',
+                        help='Keep the oldest file (default false, do not use date as comparison)')
+    g.add_argument('--keep-newest', dest='newest', action='store_true',
+                        default=False,
+                        help='Keep the newest file (default false, do not use date as comparison)')
+    rules.add_argument('--delete', dest='delete', type=str, nargs='*',
                         default=[],
                         help='List of regex to choose a file to delete')
-    parser.add_argument('--keep', dest='keep', type=str, nargs='*',
+    rules.add_argument('--keep', dest='keep', type=str, nargs='*',
                         default=[],
                         help='List of regex to choose a file to keep')
     args = parser.parse_args()
@@ -42,16 +53,21 @@ def main():
 
     sizes = {}
     # Find all files with identical size
-    for d in args.folder:
-      for (root, dir, files) in os.walk(d):
-        for f in files:
-            path = root + os.sep + f
-            s = os.stat(path).st_size
-            sizes.setdefault(s, []).append(path)
+    n = 0
+    for d in tqdm(args.folder,desc="Enumerating files..."):
+            for i,(root, dir, files) in enumerate(os.walk(d)):
+
+                n = n + 1
+                for f in files:
+                    path = root + os.sep + f
+                    s = os.stat(path).st_size
+                    if s < args.min_size:
+                        continue
+                    sizes.setdefault(s, []).append(path)
 
     # Find all files with identical hash
     same_files = []
-    for files in sizes.values():
+    for files in tqdm(sizes.values(), desc="Computing hashes..."):
         thashs = {}
         for f in files:
             m = md5(f)
@@ -80,7 +96,11 @@ def main():
                 if args.oldest:
                     for i,f in enumerate(files[1:]):
                         delete.add(f)
-                    print("Keeping only the oldest file %d" % (1))
+                    print("Keeping only the oldest file %d" % (0))
+                elif args.newest:
+                    for i,f in enumerate(files[0:-1]):
+                        delete.add(f)
+                    print("Keeping only the newest file %d" % (len(files) - 1))
                 else:
                     print("Not matching any expression... I don't know what to do !")
                     continue
@@ -92,7 +112,7 @@ def main():
             for f in delete:
                 files.remove(f)
                 keep.discard(f)
-                print("Deleting %s because it matched a delete regex" % f)
+                print("Deleting %s (size %d)" % (f,os.stat(f).st_size))
                 if not dry:
                     os.unlink(f)
             if len(files) <= 1:
